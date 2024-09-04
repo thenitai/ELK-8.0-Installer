@@ -1,6 +1,13 @@
 # ELK 8.0 Installer
 
-This script automates the installation and configuration of Elasticsearch, Kibana, and Nginx on your system. It also captures and saves the generated password for the Elasticsearch built-in superuser and sets up a Fleet server. 
+## Difference to the fork
+
+- Added logstash install
+- Installing nginx-extras with pre-configured production ready config files
+- Removing any pre-installed ELK installations, path, packages, etc.
+
+
+This script automates the installation and configuration of Elasticsearch, Kibana, and Nginx on your system. It also captures and saves the generated password for the Elasticsearch built-in superuser and sets up a Fleet server.
 
 Additionally, there is a client script to install and enroll the Elastic Agent into the Fleet server.
 
@@ -68,7 +75,7 @@ After the script completes, you should see a message similar to, it will also in
 
 ```
 Navigate to http://<your-host-ip-address> to access the Elasticsearch Interface
-Login to the interface with the following credentials: 
+Login to the interface with the following credentials:
 Username: elastic
 Password: <generated-password>
 ```

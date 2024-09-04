@@ -30,7 +30,21 @@ stop_unattended_upgrades
 
 # Get the original user's home directory
 USER_HOME=$(eval echo ~$SUDO_USER)
+sudo rm -rf $USER_HOME/elk-configs
 mkdir $USER_HOME/elk-configs
+
+# Purge
+sudo apt -y --purge remove elasticsearch kibana logstash elastic-agent apm-server
+
+# Remove any previous installations
+sudo rm -rf /etc/apt/sources.list.d/elastic-8.x.list
+sudo rm -rf /etc/elasticsearch
+sudo rm -rf /etc/kibana
+sudo rm -rf /usr/share/elasticsearch
+sudo rm -rf /usr/share/kibana
+sudo rm -rf /usr/share/logstash
+sudo rm -rf /opt/Elastic
+
 
 # Install necessary packages
 wait_for_dpkg_lock
@@ -91,17 +105,12 @@ sudo systemctl enable kibana
 
 # Install Nginx
 wait_for_dpkg_lock
-sudo apt install -y nginx
+sudo apt install -y nginx-extras
 
-# Update Nginx configuration
-NGINX_CONFIG="/etc/nginx/sites-enabled/default"
-if ! grep -q "^[[:space:]]*location / {[[:space:]]*proxy_pass http://127.0.0.1:5601;" $NGINX_CONFIG; then
-  sudo sed -i '/^[[:space:]]*location \/ {$/,/^[[:space:]]*}$/ {
-      /^[[:space:]]*try_files \$uri \$uri\/ =404;/ s/^/# /
-      /^[[:space:]]*location \/ {$/ a\
-          proxy_pass http:\/\/127.0.0.1:5601;
-  }' $NGINX_CONFIG
-fi
+sudo rm -rf /etc/nginx/nginx.conf
+sudo rm -rf /etc/nginx/conf.d/*
+cp nginx/nginx.conf /etc/nginx/nginx.conf
+cp nginx/elk.conf /etc/nginx/conf.d/elk.conf
 
 # Restart and enable Nginx service
 sudo systemctl restart nginx
@@ -109,6 +118,16 @@ sudo systemctl enable nginx
 
 echo "wait for kibana service to start"
 sleep 100
+
+# Install logstash
+sudo apt -y install logstash
+
+# Filebeat input
+cp logstash/02-beats-input.conf /etc/logstash/conf.d/02-beats-input.conf
+cp logstash/30-elasticsearch-output.conf /etc/logstash/conf.d/30-elasticsearch-output.conf
+
+sudo systemctl enable logstash
+sudo systemctl start logstash
 
 # Encode the elastic user credentials
 AUTHORIZATION=$(echo -n "elastic:$PASSWORD" | base64)
@@ -194,6 +213,6 @@ echo "Navigate to http://$IP to access the Elasticsearch Interface"
 echo "Login to the interface with the following credentials: "
 echo "Username: elastic"
 echo "Password: $PASSWORD"
-echo 
+echo
 echo "Please execute the following command on a client host to enroll it with the Fleet server"
 echo "wget https://raw.githubusercontent.com/Oiuhqw/ELK-8.0-Installer/main/client.sh -qO client.sh; sudo bash client.sh"
